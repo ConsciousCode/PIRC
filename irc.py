@@ -31,6 +31,8 @@ class Channel:
 			cmd="PRIVMSG"
 			if params!=None:
 				params="\x01ACTION %s\x01"%params
+		if cmd=="MSG":
+			cmd="PRIVMSG"
 		if params!=None:
 			self.server.connection.send("%s %s :%s\r\n"%(cmd,self.name,params))
 		else:
