@@ -8,7 +8,7 @@ class IRCError(Exception):
 	pass
 
 #contains global settings for the user
-class User:
+class User(object):
 	def __init__(self,nick,realname=None):
 		self.nick=nick
 		self.log=None
@@ -19,7 +19,7 @@ class User:
 	def openlog(self,filename):
 		self.log=open(filename,"a")
 
-class Channel:
+class Channel(object):
 	def __init__(self,name,server):
 		self.name=name
 		self.server=server
@@ -34,24 +34,28 @@ class Channel:
 		if cmd=="MSG":
 			cmd="PRIVMSG"
 		if params!=None:
-			self.server.connection.send("%s %s :%s\r\n"%(cmd,self.name,params))
+			self.server.connection.send("%s %s %s\r\n"%(cmd,self.name,params))
 		else:
 			self.server.connection.send("%s %s\r\n"%(cmd,self.name,params))
 	
 	def sendmsg(self,msg):
-		self.server.connection.send("PRIVMSG %s :%s"%(self.name,msg))
+		self.server.connection.send("PRIVMSG %s :%s\r\n"%(self.name,msg))
+	
+	def send(self,msg):
+		self.server.connection.send("PRIVMSG %s :%s\r\n"%(self.name,msg))
 	
 	def get_data(self):
 		ret=self.data
 		self.data=[]
 		return ret
 
-class Server:
+class Server(object):
 	def __init__(self,name,port=6667):
 		self.name=name
 		self.port=port
 		self.connection=None
 		self.data=""
+		self.user=""
 		self.exit=False
 		#global context
 		self.channels={"*":Channel("*",self)}
@@ -96,6 +100,7 @@ class Server:
 			exit()
 	
 	def connect(self,user):
+		self.user=user
 		self.connection=socket.socket()
 		self.connection.connect((self.name,self.port))
 		self.connection.send("NICK %s\r\n"%user.nick)
