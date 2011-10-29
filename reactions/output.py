@@ -4,7 +4,7 @@ class metadata:
 	description="Outputs the received data into the console."
 	type="Reaction"
 
-def action(bot,data):
+def action(bot,io,data):
 	if data["cmd"]=="MSG":
 		print "<%s> %s"%(data["user"],data["params"])
 	elif data["cmd"]=="ME":

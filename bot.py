@@ -1,12 +1,10 @@
 import imp
+import os
+import time
 
 class Bot(object):
 	class Module(object):
 		def check_meta(self,mod):
-			if "metadata" not in dir(mod):
-				raise NameError("Module doesn't have the required metadata class.")
-			if "name" not in dir(mod.metadata):
-				raise NameError("metadata.name field is not specified.")
 			if "version" not in dir(mod.metadata):
 				mod.metadata.version=-1
 			if "description" not in dir(mod.metadata):
@@ -21,11 +19,10 @@ class Bot(object):
 			self.check_meta(self.mod)
 			if "active" not in dir(self.mod):
 				self.mod.active=True
+			self.active=self.mod.active
 			self.name=self.mod.metadata.name
 			self.version=self.mod.metadata.version
 			self.description=self.mod.metadata.description
-			if "action" not in dir(self.mod):
-				raise NameError("Module doesn't give an action")
 			self.action=self.mod.action
 		
 	class Service(Module):
@@ -43,9 +40,7 @@ class Bot(object):
 	class Stream(object):
 		def __init__(self,wrapped):
 			self.io=wrapped
-			self.services={}
-			self.modifiers={}
-			self.reactions={}
+			self.types={}
 		
 		def get_data(self):
 			return self.io.get_data()
@@ -58,46 +53,38 @@ class Bot(object):
 		self.version=version
 		self.description=description
 		self.io=[]
-		self.services=[]
-		self.modifiers=[]
-		self.reactions=[]
+		self.types={"Service":({},Bot.Service),"Modifier":({},Bot.Modifier),"Reaction":({},Bot.Reaction)}
 	
 	def load_module(self,fname):
-		mod=imp.load_source(fname)
-		if mod.metadata.type=="Service":
-			self.services.append(Bot.Service(mod))
-		elif mod.metadata.type=="Modifier":
-			self.modifiers.append(Bot.Modifer(mod))
-		elif mod.metadata.type=="Reaction":
-			self.reactions.append(Bot.Reaction(mod))
-		else:
-			raise TypeError("Invalid module type")
+		mod=imp.load_source("",fname)
+		self.types[mod.metadata.type][0].update({mod.metadata.name:self.types[mod.metadata.type][1](mod)})
 		if "init" in dir(mod):
 			mod.init(self)
 	
 	def load_modules(self,directory):
 		#load modules
-		listing=os.listdir(cmddir)
+		listing=os.listdir(directory)
 		for f in listing:
 			path=os.path.splitext(f)
 			if path[1]==".py":
-				self.load_module(path[0])
+				self.load_module(directory+path[0]+path[1])
 	
 	def add_stream(self,stream):
 		self.io.append(stream)
-		for service in self.services:
-			stream.services.update({service.name:service.active})
-		for modifier in self.modifiers:
-			stream.modifiers.update({modifier.name:modifier.active})
-		for reaction in self.reactions:
-			stream.reactions.update({reaction.name:reaction.active})
+		stream.types=self.types
+		for type in self.types:
+			if type not in stream.types:
+				stream.types[type]={}
+				for mod in self.types[type][0]:
+					stream.types[type].update({mod:self.types[type][0][mod].active})
 	
 	def run(self):
 		while True:
 			out=[]
 			#run through services
-			for service in self.services:
-				result=service.action(self)
+			for service in self.types["Service"][0]:
+				if self.types["Service"][0][service].active:
+					result=self.types["Service"][0][service].action(self,io)
 				if result!=None:
 					out.append(result)
 			for io in self.io:
@@ -105,12 +92,15 @@ class Bot(object):
 				if data==None or len(data)==0:
 					continue
 				for a in data:
-					for reaction in self.reactions:
-						result=reaction.action(self,a)
+					for reaction in self.types["Reaction"][0]:
+						if self.types["Reaction"][0][reaction].active:
+							result=self.types["Reaction"][0][reaction].action(self,io,a)
 						if result!=None:
 							out.append(result)
 				for line in out:
-					for modifier in self.modifiers:
-						if modifier.active:
-							line=modifier.action(self,line)
+					for modifier in self.types["Modifier"][0]:
+						if self.types["Modifier"][0][modifier].active:
+							line=self.types["Modifier"][0][modifier].action(self,io,line)
+					print line
 					io.send(line)
+				time.sleep(1)

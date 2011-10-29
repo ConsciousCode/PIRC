@@ -33,21 +33,27 @@ class Channel(object):
 				params="\x01ACTION %s\x01"%params
 		if cmd=="MSG":
 			cmd="PRIVMSG"
-		if params!=None:
-			self.server.connection.send("%s %s %s\r\n"%(cmd,self.name,params))
-		else:
-			self.server.connection.send("%s %s\r\n"%(cmd,self.name,params))
+		params=params.split('\r\n')
+		out=""
+		for param in params:
+			if ' ' in param:
+				out+="%s %s :%s\r\n"%(cmd,self.name,param)
+			else:
+				out+="%s %s %s\r\n"%(cmd,self.name,param)
+		self.server.connection.send(out)
 	
 	def sendmsg(self,msg):
-		self.server.connection.send("PRIVMSG %s :%s\r\n"%(self.name,msg))
+		self.sendcmd("MSG",msg)
 	
-	def send(self,msg):
-		self.server.connection.send("PRIVMSG %s :%s\r\n"%(self.name,msg))
+	send=sendmsg
 	
 	def get_data(self):
 		ret=self.data
 		self.data=[]
 		return ret
+	
+	def sendraw(self,raw):
+		self.server.connection.send(raw+"\r\n")
 
 class Server(object):
 	def __init__(self,name,port=6667):
@@ -96,7 +102,8 @@ class Server(object):
 						if chan not in self.channels:
 							self.channels[chan]=Channel(chan,self)
 						self.channels[chan].data.append({"user":user,"cmd":cmd,"params":parameters})
-		except:
+		except Exception as e:
+			print e
 			exit()
 	
 	def connect(self,user):
