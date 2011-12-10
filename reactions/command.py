@@ -9,7 +9,7 @@ class metadata:
 	description="Provides a system through which commands can be implemented."
 	type="Reaction"
 
-deliminator="!"
+deliminator="@"
 
 class Command(bot.Bot.Module):
 	def __init__(self,fname):

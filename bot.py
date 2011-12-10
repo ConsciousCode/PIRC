@@ -57,7 +57,7 @@ class Bot(object):
 	
 	def load_module(self,fname):
 		mod=imp.load_source("",fname)
-		self.types[mod.metadata.type][0].update({mod.metadata.name:self.types[mod.metadata.type][1](mod)})
+		self.types[mod.metadata.type][0].update({mod.metadata.name.lower():self.types[mod.metadata.type][1](mod)})
 		if "init" in dir(mod):
 			mod.init(self)
 	
@@ -93,6 +93,7 @@ class Bot(object):
 					continue
 				for a in data:
 					for reaction in self.types["Reaction"][0]:
+						result=None
 						if self.types["Reaction"][0][reaction].active:
 							result=self.types["Reaction"][0][reaction].action(self,io,a)
 						if result!=None:

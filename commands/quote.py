@@ -19,6 +19,6 @@ def action(bot,io,data):
 		if data["params"]=="":
 			return bot.quotes[random.randrange(0,len(bot.quotes))-1]
 		else:
-			bot.quotes.append(data["params"]+' ~'+data["user"])
-			quotefile.write('\n'+data["params"]+' ~'+data["user"])
+			bot.quotes.append('"'+data["params"]+'" ~ '+data["user"])
+			quotefile.write('\n"'+data["params"]+'" ~ '+data["user"])
 			return "Quote has been added"
